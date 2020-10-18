@@ -15,6 +15,9 @@ code.py
 test_code.py
 ```
 
+## 24/7 Community Of Support
+If you have any questions regarding this app or implementing your own version of this app please visit us in the CircuitPython Discord channel [HERE](https://discord.com/invite/5FBsBHU) and visit the `help-with-circuitpython` room.
+
 ## Run Tests in REPL
 ```bash
 import unitest
