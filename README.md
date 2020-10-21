@@ -20,7 +20,7 @@ If you have any questions regarding this app or implementing your own version of
 
 ## Run Tests in REPL
 ```bash
-import unitest
+import unittest
 unittest.main('test_code')
 ```
 
