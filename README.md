@@ -10,7 +10,7 @@ git clone https://github.com/mytechnotalent/CircuitPython_Unittest.git
 
 ## Copy Files To CircuitPython Device
 ```bash
-unittest.py [SOURCE: https://github.com/micropython/micropython-lib/blob/master/unittest/unittest.py]
+unittest.py
 code.py
 test_code.py
 ```
