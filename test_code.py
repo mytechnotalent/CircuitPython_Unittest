@@ -11,3 +11,7 @@ class TestCode(unittest.TestCase):
         result = foo('test')
         # Asserts
         self.assertEqual(result, 'test!')
+
+        
+if __name__ == '__main__':
+    unittest.main()
