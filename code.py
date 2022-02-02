@@ -1,5 +1,6 @@
 def foo(param):
-    """Simple foo function that returns a string with an exclamation point
+    """
+    Simple foo function that returns a string with an exclamation point
     
     Params:
         param: str
