@@ -3,6 +3,10 @@ from code import foo
 
 
 class TestCode(unittest.TestCase):
+    """
+    Test class to test code module
+    """
+    
     def test_foo(self):
         """
         test foo functionality
