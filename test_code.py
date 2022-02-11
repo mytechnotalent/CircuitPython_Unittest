@@ -13,6 +13,7 @@ class TestCode(unittest.TestCase):
         """
         # Calls
         result = foo('test')
+        
         # Asserts
         self.assertEqual(result, 'test!')
 
