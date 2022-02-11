@@ -42,8 +42,7 @@ class AssertRaisesContext:
         if exc_type is None:
             assert False, '%r not raised' % self.expected
         if issubclass(exc_type, self.expected):
-            return True
-        
+            return True 
         return False
 
 
@@ -280,7 +279,6 @@ class TestCase:
         except Exception as e:
             if isinstance(e, exc):
                 return
-            
             raise
 
 
@@ -315,9 +313,7 @@ def skip(msg):
                 object
             """
             raise SkipTest(msg)
-            
         return _inner
-    
     return _decor
 
 
@@ -334,7 +330,6 @@ def skipIf(cond, msg):
     """
     if not cond:
         return lambda x: x
-    
     return skip(msg)
 
 
@@ -351,7 +346,6 @@ def skipUnless(cond, msg):
     """
     if cond:
         return lambda x: x
-    
     return skip(msg)
 
 
@@ -400,9 +394,7 @@ class TestRunner:
             msg = "OK"
             if res.skippedNum > 0:
                 msg += " (%d skipped)" % res.skippedNum
-                
             print(msg)
-            
         return res
 
     
@@ -448,19 +440,14 @@ def run_class(c, test_result):
             
             try:
                 test_result.testsRun += 1
-                
                 m()
-                
                 print(' ok')
             except SkipTest as e:
-                print(' skipped:', e.args[0])
-                
+                print(' skipped:', e.args[0]) 
                 test_result.skippedNum += 1
             except:
                 print(' FAIL')
-                
-                test_result.failuresNum += 1
-                
+                test_result.failuresNum += 1 
                 raise
             finally:
                 tear_down()
@@ -476,7 +463,6 @@ def main(module='__main__'):
         """
         for tn in dir(m):
             c = getattr(m, tn)
-            
             if isinstance(c, object) and isinstance(c, type) and issubclass(c, TestCase):
                 yield c
 
