@@ -9,6 +9,5 @@ def foo(param):
         str
     """
     param = param + '!'
-    
     return param
     
