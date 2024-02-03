@@ -424,10 +424,14 @@ def run_class(c, test_result):
             except SkipTest as e:
                 print(' skipped:', e.args[0])
                 test_result.skippedNum += 1
-            except:  # noqa
-                print(' FAIL')
+            except AssertionError as e:
+                print(' FAIL:', e.args[0])
                 test_result.failuresNum += 1
+            except (SystemExit, KeyboardInterrupt):
                 raise
+            except Exception as e: # noqa
+                print(' ERROR', type(e).__name__, e.args[0])
+                test_result.errorsNum += 1
             finally:
                 tear_down()
 
