@@ -276,11 +276,13 @@ def skip(msg):  # noqa
     Returns:
         object
     """
-    def _decor(msg):  # noqa
+    def _decor(func):  # noqa
         """
         Inner function to handle private _decor logic
 
         Params:
+            func: function
+        Closure:
             msg: str
 
         Returns:
@@ -291,6 +293,8 @@ def skip(msg):  # noqa
             Inner function to handle replacing original fun with _inner
 
             Params:
+                self: class instance; subclass of TestCase
+            Closure:
                 msg: str
 
             Returns:
@@ -299,7 +303,6 @@ def skip(msg):  # noqa
             raise SkipTest(msg)
         return _inner
     return _decor
-
 
 def skipIf(cond, msg):  # noqa
     """
@@ -424,6 +427,7 @@ def run_class(c, test_result):
             except SkipTest as e:
                 print(' skipped:', e.args[0])
                 test_result.skippedNum += 1
+                test_result.testsRun -= 1  # not run if skipped
             except AssertionError as e:
                 print(' FAIL:', e.args[0])
                 test_result.failuresNum += 1
@@ -446,10 +450,10 @@ def main(module='__main__'):
         """
         for tn in dir(m):
             c = getattr(m, tn)  # noqa
-            if isinstance(c, object) and isinstance(c, type) and issubclass(c, TestCase):
+            if isinstance(c, type) and issubclass(c, TestCase) and c is not TestCase:
                 yield c
 
-    m = __import__(module)
+    m = __import__(module, None, None, ['*'])  # handle tests in folder
 
     suite = TestSuite()
     for c in test_cases(m):
