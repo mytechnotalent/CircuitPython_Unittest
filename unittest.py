@@ -8,6 +8,27 @@ class SkipTest(Exception):
     pass
 
 
+class TestResult:
+    """
+    Class to handle test result functionality
+    """
+
+    def __init__(self):
+        self.errorsNum = 0
+        self.failuresNum = 0
+        self.skippedNum = 0
+        self.testsRun = 0
+
+    def wasSuccessful(self):  # noqa
+        """
+        Method to handle indication of a successful test functionality
+
+        Returns:
+            bool
+        """
+        return self.errorsNum == 0 and self.failuresNum == 0
+
+
 class AssertRaisesContext:
     """
     Class to handle an assertion raising context
@@ -50,6 +71,57 @@ class TestCase:
     """
     Class to handle unittest test case functionality
     """
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        Setup resources and conditions need for the whole suite (TestCase)
+        The main test runner executes this one time only before creating an instance of the class
+        """
+        pass
+    @classmethod
+    def tearDownClass(cls):
+        """
+        Release resources and restore conditions after the test suite has finished
+        """
+        pass
+    def setUp(self):
+        """
+        Setup resources and starting conditions needed for every test in the suite
+        The main test runner executes this before calling any test method in the suite
+        """
+        pass
+    def tearDown(self):
+        """
+        Release resources, and do any needed cleanup after every test in the suite
+        The main test runner executes this after calling any test method in the suite
+        """
+        pass
+
+    def run(self, result: TestResult):
+        for name in dir(self):
+            if name.startswith('test'):
+                print(f'{name} ({self.__qualname__}) ...', end='')  # report progress
+                test_method = getattr(self, name)
+                self.setUp()  # Pre-test setup (every test)
+                try:
+                    result.testsRun += 1
+                    test_method()
+                    print(' ok')
+                except SkipTest as e:
+                    print(' skipped:', e.args[0])
+                    result.skippedNum += 1
+                    result.testsRun -= 1  # not run if skipped
+                except AssertionError as e:
+                    print(' FAIL:', e.args[0])
+                    result.failuresNum += 1
+                except (SystemExit, KeyboardInterrupt):
+                    raise
+                except Exception as e: # noqa
+                    print(' ERROR', type(e).__name__, e.args[0])
+                    result.errorsNum += 1
+                finally:
+                    self.tearDown()  # Post-test teardown (every test)
 
     @staticmethod
     def assertAlmostEqual(x, y, places=None, msg='', delta=None):
@@ -364,10 +436,10 @@ class TestRunner:
         Method to handle test run functionality
 
         Params:
-            suite: object
+            suite: TestSuite
 
         Returns:
-            object
+            TestResult
         """
         res = TestResult()
         for c in suite.tests:
@@ -383,61 +455,33 @@ class TestRunner:
         return res
 
 
-class TestResult:
+def run_class(test_class: TestCase, test_result: TestResult):
     """
-    Class to handle test result functionality
-    """
-
-    def __init__(self):
-        self.errorsNum = 0
-        self.failuresNum = 0
-        self.skippedNum = 0
-        self.testsRun = 0
-
-    def wasSuccessful(self):  # noqa
-        """
-        Method to handle indication of a successful test functionality
-
-        Returns:
-            bool
-        """
-        return self.errorsNum == 0 and self.failuresNum == 0
-
-
-def run_class(c, test_result):
-    """
-    Function to handle running of class functionality
+    Execute test methods within a test class, handling setup and teardown.
 
     Params:
-        c: object
-        test_result: bool
+        test_class: TestCase subclass indicating the class to run.
+        test_result: TestResult instance to update with test outcomes.
     """
-    o = c()
-    set_up = getattr(o, 'setUp', lambda: None)
-    tear_down = getattr(o, 'tearDown', lambda: None)
-    for name in dir(o):
-        if name.startswith('test'):
-            print('%s (%s) ...' % (name, c.__qualname__), end='')
-            m = getattr(o, name)
-            set_up()
-            try:
-                test_result.testsRun += 1
-                m()
-                print(' ok')
-            except SkipTest as e:
-                print(' skipped:', e.args[0])
-                test_result.skippedNum += 1
-                test_result.testsRun -= 1  # not run if skipped
-            except AssertionError as e:
-                print(' FAIL:', e.args[0])
-                test_result.failuresNum += 1
-            except (SystemExit, KeyboardInterrupt):
-                raise
-            except Exception as e: # noqa
-                print(' ERROR', type(e).__name__, e.args[0])
-                test_result.errorsNum += 1
-            finally:
-                tear_down()
+    context = 'setUpClass'
+    try:
+        test_class.setUpClass()
+        context = 'instantiate class'
+        testing_instance = test_class()
+        context = 'run tests'
+        testing_instance.run(test_result)
+    except Exception as exc:
+        print(f'Error in {context} for {test_class.__name__}: {exc}')
+        if context != 'run tests':
+            context = 'early tearDownClass due to error'
+
+    # Always Proceed with tearDownClass, with varying context
+    if context == 'run tests':
+        context = 'tearDownClass'
+    try:
+        test_class.tearDownClass()
+    except Exception as exc:
+        print(f'Error in {context} for {test_class.__name__}: {exc}')
 
 
 def main(module='__main__'):
