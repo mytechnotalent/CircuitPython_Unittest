@@ -302,6 +302,19 @@ class TestCase:
             msg = 'Expected %r to be in %r' % (x, y)
         assert x in y, msg
 
+    def assertNotIn(self, x, y, msg=''):  # noqa
+        """
+        Method to handle assert not in logic
+
+        Params:
+            x: any
+            y: any
+            msg: str, optional
+        """
+        if not msg:
+            msg = 'Expected %r to not be in %r' % (x, y)
+        assert x not in y, msg
+
     def assertIsInstance(self, x, y, msg=''):  # noqa
         """
         Method to handle assert is instance logic
