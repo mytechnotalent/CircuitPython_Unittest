@@ -1,5 +1,5 @@
 import sys
-
+import traceback
 
 class SkipTest(Exception):
     """
@@ -485,6 +485,9 @@ def run_class(test_class: TestCase, test_result: TestResult):
         testing_instance.run(test_result)
     except Exception as exc:
         print(f'Error in {context} for {test_class.__name__}: {exc}')
+        traceback_str = traceback.format_exc()
+        print(traceback_str)
+
         if context != 'run tests':
             context = 'early tearDownClass due to error'
 
@@ -521,3 +524,5 @@ def main(module='__main__'):
 
     # Terminate with non-zero return code in case of failures
     sys.exit(result.failuresNum > 0)
+
+# cSpell:ignore noqa
