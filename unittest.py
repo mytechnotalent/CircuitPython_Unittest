@@ -1,6 +1,7 @@
 import sys
 import traceback
 
+
 class SkipTest(Exception):
     """
     Class to handle skipping test functionality
@@ -484,10 +485,9 @@ def run_class(test_class: TestCase, test_result: TestResult):
         context = 'run tests'
         testing_instance.run(test_result)
     except Exception as exc:
-        print(f'Error in {context} for {test_class.__name__}: {exc}')
-        traceback_str = traceback.format_exc()
-        print(traceback_str)
-
+        print(f'Error in {context} for {test_class.__name__}:')
+        traceback_str = traceback.format_exception(exc)
+        print(''.join(traceback_str))
         if context != 'run tests':
             context = 'early tearDownClass due to error'
 
