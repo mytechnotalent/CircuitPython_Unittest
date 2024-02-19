@@ -119,7 +119,8 @@ class TestCase:
                 except (SystemExit, KeyboardInterrupt):
                     raise
                 except Exception as e: # noqa
-                    print(' ERROR', type(e).__name__, e.args[0])
+                    print(' ERROR', type(e).__name__)
+                    print(''.join(traceback.format_exception(e)))
                     result.errorsNum += 1
                 finally:
                     self.tearDown()  # Post-test teardown (every test)
