@@ -35,36 +35,45 @@ class AssertRaisesContext:
     Class to handle an assertion raising context
     """
 
-    def __init__(self, exc):
+    def __init__(self, exc: Exception):
         """
         Params:
-            exc: str
+            exc: Exception
         """
         self.expected = exc
+        self.raised = None
+        self.traceback = None
+        self.exception_value = None
 
     def __enter__(self):
         """
         Magic method to handle enter implementation objects used with the with statement
 
         Returns:
-            str
+            object: AssertRaisesContext
         """
         return self
 
-    def __exit__(self, exc_type):
+    def __exit__(self, exc_type: type, exc_value: Exception, traceback):
         """
         Magic method to handle exit implementation objects used with the with statement
 
         Params:
-            exc_type: str
+            exc_type: type the raised exception type (class)
+            exc_value: Exception the raised exception instance
+            traceback: the traceback for the raised exception
 
         Returns:
             bool
         """
+        self.traceback = traceback
+        self.raised = exc_type
+        self.exception_value = exc_value
         if exc_type is None:
             assert False, '%r not raised' % self.expected
         if issubclass(exc_type, self.expected):
             return True
+        # unhandled exceptions will get re-raise: Returning false indicates not handled
         return False
 
 
@@ -349,7 +358,7 @@ class TestCase:
             assert False, "%r not raised" % exc
         except Exception as e:
             if isinstance(e, exc):
-                return
+                return None
             raise
 
 
