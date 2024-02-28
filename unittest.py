@@ -123,7 +123,7 @@ class TestCase:
                     result.skippedNum += 1
                     result.testsRun -= 1  # not run if skipped
                 except AssertionError as e:
-                    print(' FAIL:', e.args[0])
+                    print(' FAIL:', e.args[0] if e.args else 'no assert message')
                     result.failuresNum += 1
                 except (SystemExit, KeyboardInterrupt):
                     raise
