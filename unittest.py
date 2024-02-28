@@ -1,4 +1,5 @@
 import sys
+import traceback
 
 
 class SkipTest(Exception):
@@ -8,41 +9,71 @@ class SkipTest(Exception):
     pass
 
 
+class TestResult:
+    """
+    Class to handle test result functionality
+    """
+
+    def __init__(self):
+        self.errorsNum = 0
+        self.failuresNum = 0
+        self.skippedNum = 0
+        self.testsRun = 0
+
+    def wasSuccessful(self):  # noqa
+        """
+        Method to handle indication of a successful test functionality
+
+        Returns:
+            bool
+        """
+        return self.errorsNum == 0 and self.failuresNum == 0
+
+
 class AssertRaisesContext:
     """
     Class to handle an assertion raising context
     """
 
-    def __init__(self, exc):
+    def __init__(self, exc: Exception):
         """
         Params:
-            exc: str
+            exc: Exception
         """
         self.expected = exc
+        self.raised = None
+        self.traceback = None
+        self.exception_value = None
 
     def __enter__(self):
         """
         Magic method to handle enter implementation objects used with the with statement
 
         Returns:
-            str
+            object: AssertRaisesContext
         """
         return self
 
-    def __exit__(self, exc_type):
+    def __exit__(self, exc_type: type, exc_value: Exception, traceback):
         """
         Magic method to handle exit implementation objects used with the with statement
 
         Params:
-            exc_type: str
+            exc_type: type the raised exception type (class)
+            exc_value: Exception the raised exception instance
+            traceback: the traceback for the raised exception
 
         Returns:
             bool
         """
+        self.traceback = traceback
+        self.raised = exc_type
+        self.exception_value = exc_value
         if exc_type is None:
             assert False, '%r not raised' % self.expected
         if issubclass(exc_type, self.expected):
             return True
+        # unhandled exceptions will get re-raise: Returning false indicates not handled
         return False
 
 
@@ -50,6 +81,58 @@ class TestCase:
     """
     Class to handle unittest test case functionality
     """
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        Setup resources and conditions need for the whole suite (TestCase)
+        The main test runner executes this one time only before creating an instance of the class
+        """
+        pass
+    @classmethod
+    def tearDownClass(cls):
+        """
+        Release resources and restore conditions after the test suite has finished
+        """
+        pass
+    def setUp(self):
+        """
+        Setup resources and starting conditions needed for every test in the suite
+        The main test runner executes this before calling any test method in the suite
+        """
+        pass
+    def tearDown(self):
+        """
+        Release resources, and do any needed cleanup after every test in the suite
+        The main test runner executes this after calling any test method in the suite
+        """
+        pass
+
+    def run(self, result: TestResult):
+        for name in dir(self):
+            if name.startswith('test'):
+                print(f'{name} ({self.__qualname__}) ...', end='')  # report progress
+                test_method = getattr(self, name)
+                self.setUp()  # Pre-test setup (every test)
+                try:
+                    result.testsRun += 1
+                    test_method()
+                    print(' ok')
+                except SkipTest as e:
+                    print(' skipped:', e.args[0])
+                    result.skippedNum += 1
+                    result.testsRun -= 1  # not run if skipped
+                except AssertionError as e:
+                    print(' FAIL:', e.args[0] if e.args else 'no assert message')
+                    result.failuresNum += 1
+                except (SystemExit, KeyboardInterrupt):
+                    raise
+                except Exception as e: # noqa
+                    print(' ERROR', type(e).__name__)
+                    print(''.join(traceback.format_exception(e)))
+                    result.errorsNum += 1
+                finally:
+                    self.tearDown()  # Post-test teardown (every test)
 
     @staticmethod
     def assertAlmostEqual(x, y, places=None, msg='', delta=None):
@@ -230,6 +313,19 @@ class TestCase:
             msg = 'Expected %r to be in %r' % (x, y)
         assert x in y, msg
 
+    def assertNotIn(self, x, y, msg=''):  # noqa
+        """
+        Method to handle assert not in logic
+
+        Params:
+            x: any
+            y: any
+            msg: str, optional
+        """
+        if not msg:
+            msg = 'Expected %r to not be in %r' % (x, y)
+        assert x not in y, msg
+
     def assertIsInstance(self, x, y, msg=''):  # noqa
         """
         Method to handle assert is instance logic
@@ -262,7 +358,7 @@ class TestCase:
             assert False, "%r not raised" % exc
         except Exception as e:
             if isinstance(e, exc):
-                return
+                return None
             raise
 
 
@@ -276,11 +372,13 @@ def skip(msg):  # noqa
     Returns:
         object
     """
-    def _decor(msg):  # noqa
+    def _decor(func):  # noqa
         """
         Inner function to handle private _decor logic
 
         Params:
+            func: function
+        Closure:
             msg: str
 
         Returns:
@@ -291,6 +389,8 @@ def skip(msg):  # noqa
             Inner function to handle replacing original fun with _inner
 
             Params:
+                self: class instance; subclass of TestCase
+            Closure:
                 msg: str
 
             Returns:
@@ -299,7 +399,6 @@ def skip(msg):  # noqa
             raise SkipTest(msg)
         return _inner
     return _decor
-
 
 def skipIf(cond, msg):  # noqa
     """
@@ -361,10 +460,10 @@ class TestRunner:
         Method to handle test run functionality
 
         Params:
-            suite: object
+            suite: TestSuite
 
         Returns:
-            object
+            TestResult
         """
         res = TestResult()
         for c in suite.tests:
@@ -380,56 +479,35 @@ class TestRunner:
         return res
 
 
-class TestResult:
+def run_class(test_class: TestCase, test_result: TestResult):
     """
-    Class to handle test result functionality
-    """
-
-    def __init__(self):
-        self.errorsNum = 0
-        self.failuresNum = 0
-        self.skippedNum = 0
-        self.testsRun = 0
-
-    def wasSuccessful(self):  # noqa
-        """
-        Method to handle indication of a successful test functionality
-
-        Returns:
-            bool
-        """
-        return self.errorsNum == 0 and self.failuresNum == 0
-
-
-def run_class(c, test_result):
-    """
-    Function to handle running of class functionality
+    Execute test methods within a test class, handling setup and teardown.
 
     Params:
-        c: object
-        test_result: bool
+        test_class: TestCase subclass indicating the class to run.
+        test_result: TestResult instance to update with test outcomes.
     """
-    o = c()
-    set_up = getattr(o, 'setUp', lambda: None)
-    tear_down = getattr(o, 'tearDown', lambda: None)
-    for name in dir(o):
-        if name.startswith('test'):
-            print('%s (%s) ...' % (name, c.__qualname__), end='')
-            m = getattr(o, name)
-            set_up()
-            try:
-                test_result.testsRun += 1
-                m()
-                print(' ok')
-            except SkipTest as e:
-                print(' skipped:', e.args[0])
-                test_result.skippedNum += 1
-            except:  # noqa
-                print(' FAIL')
-                test_result.failuresNum += 1
-                raise
-            finally:
-                tear_down()
+    context = 'setUpClass'
+    try:
+        test_class.setUpClass()
+        context = 'instantiate class'
+        testing_instance = test_class()
+        context = 'run tests'
+        testing_instance.run(test_result)
+    except Exception as exc:
+        print(f'Error in {context} for {test_class.__name__}:')
+        traceback_str = traceback.format_exception(exc)
+        print(''.join(traceback_str))
+        if context != 'run tests':
+            context = 'early tearDownClass due to error'
+
+    # Always Proceed with tearDownClass, with varying context
+    if context == 'run tests':
+        context = 'tearDownClass'
+    try:
+        test_class.tearDownClass()
+    except Exception as exc:
+        print(f'Error in {context} for {test_class.__name__}: {exc}')
 
 
 def main(module='__main__'):
@@ -442,10 +520,10 @@ def main(module='__main__'):
         """
         for tn in dir(m):
             c = getattr(m, tn)  # noqa
-            if isinstance(c, object) and isinstance(c, type) and issubclass(c, TestCase):
+            if isinstance(c, type) and issubclass(c, TestCase) and c is not TestCase:
                 yield c
 
-    m = __import__(module)
+    m = __import__(module, None, None, ['*'])  # handle tests in folder
 
     suite = TestSuite()
     for c in test_cases(m):
@@ -456,3 +534,5 @@ def main(module='__main__'):
 
     # Terminate with non-zero return code in case of failures
     sys.exit(result.failuresNum > 0)
+
+# cSpell:ignore noqa
